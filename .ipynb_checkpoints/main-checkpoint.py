@@ -44,7 +44,6 @@ def cross_subject(args):
             # distributed.init_process_group('gloo', world_size=self.world_size, rank=self.rank)
             torch.cuda.set_device(local_rank)
         for i in range(args.num_repeat):
-        # for i in range(1, 2):
             group_name = f"{args.model}" \
                          f"_{args.dataset}" \
                          f"_{args.batch_size}" \

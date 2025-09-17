@@ -638,12 +638,11 @@ class BrainVAETrainer(Trainer):
                 "node_feature": node_feature.to(self.device),
                 "labels": labels.float().to(self.device)}
 
-    def train_epoch(self):
+    def train_epoch(self, epoch):
         train_dataloader = self.data_loaders['train']
         self.model.train()
         losses = 0
         loss_list = []
-
         for step, inputs in enumerate(tqdm(train_dataloader, desc="Iteration", ncols=0)):
             input_kwargs = self.prepare_inputs_kwargs(inputs)
             outputs = self.model(**input_kwargs)
@@ -679,7 +678,7 @@ class BrainVAETrainer(Trainer):
             self.visualize()
         for epoch in tqdm(range(1, self.args.num_epochs + 1), desc="epoch"):
             start_time = timer()
-            train_loss = self.train_epoch()
+            train_loss = self.train_epoch(epoch)
             end_time = timer()
 
             self.data_config.alpha = self.data_config.beta = \

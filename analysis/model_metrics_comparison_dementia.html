@@ -1,0 +1,79 @@
+
+    <html>
+    <head>
+        <title>Model Metrics Comparison</title>
+        <style>
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px 0;
+                font-family: Arial, sans-serif;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: center;
+            }
+            th {
+                background-color: #f2f2f2;
+                position: sticky;
+                top: 0;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            tr:hover {
+                background-color: #f1f1f1;
+            }
+            .metric-header {
+                background-color: #e6f7ff;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Model Metrics Comparison (Average of Best Epochs from 3 Runs)</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">Model</th>
+                    <th colspan="7" class="metric-header">Metrics (Average of Best Epochs)</th>
+                </tr>
+                <tr>
+                    <th>AUC</th>
+                    <th>Accuracy</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F-score</th>
+                    <th>Test-loss</th>
+                    <th>Train-loss</th>
+                </tr>
+            </thead>
+            <tbody>
+    
+                <tr>
+                    <td>BrainVAE_Dementia</td>
+                    <td>0.9206</td>
+                    <td>0.8462</td>
+                    <td>0.8476</td>
+                    <td>0.8690</td>
+                    <td>0.8580</td>
+                    <td>0.9045</td>
+                    <td>0.1059</td>
+                </tr>
+        
+                <tr>
+                    <td>BrainNetCNN_Dementia</td>
+                    <td>0.8777</td>
+                    <td>0.7692</td>
+                    <td>0.8095</td>
+                    <td>0.7619</td>
+                    <td>0.7805</td>
+                    <td>1.1876</td>
+                    <td>0.0000</td>
+                </tr>
+        
+            </tbody>
+        </table>
+    </body>
+    </html>
+    

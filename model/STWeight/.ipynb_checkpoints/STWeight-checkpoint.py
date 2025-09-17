@@ -84,7 +84,7 @@ class STWeight(nn.Module):
         frequency_a = self.pearson_correlation(frequency_mu)
         phase_a = self.pearson_correlation(phase_mu)
         
-        adj = time_a + frequency_a + phase_a
+        adj = (time_a + frequency_a + phase_a) / 3
         #(B, L, C, C)
         
         v = repeat(torch.eye(C), 'n1 n2 -> b t n1 n2', t=T, b=B).to(device)
@@ -110,7 +110,7 @@ class STWeight(nn.Module):
         time_h = time_h.permute(0, 2, 3, 1)
         #(B, C, L, D)
         
-        out_h = torch.sum(time_h, dim=2)
+        out_h = torch.mean(time_h, dim=2)
         out_h = self.dropout(F.leaky_relu(self.final_linear1(out_h), negative_slope=0.33))
         
         out_h = out_h.reshape(B, -1)

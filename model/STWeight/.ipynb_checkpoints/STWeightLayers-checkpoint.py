@@ -289,7 +289,9 @@ class VAE(nn.Module):
             
         kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         
-        return mu.reshape(B, C, -1, self.d_model).permute(0, 2, 1, 3), recon_loss, kld
+        out = self.reparameterize(mu, logvar).reshape(B, C, -1, self.d_model).permute(0, 2, 1, 3)
+        
+        return out, recon_loss, kld
     
 
     

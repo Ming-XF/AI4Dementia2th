@@ -91,6 +91,9 @@ class BrainVAE(nn.Module):
         
         self.dense3 = torch.nn.Linear(32, config.num_classes)
         
+        self.last_logit_loss = torch.tensor(1, device='cuda')
+        self.last_vae_loss = torch.tensor(1000000, device='cuda')
+        
     def compute_channel_attention(self, x):
         """
         计算每个批次、每个时间步的通道注意力分数。
@@ -119,46 +122,38 @@ class BrainVAE(nn.Module):
 
         return attention_scores
 
-    def pearson_correlation(self, x):
+    def batch_channel_pearson(self, x):
         """
-        计算输入张量在C维度上的皮尔逊相关系数矩阵
+        计算形状为(B, L, C, F)的张量在C维度上的Pearson相关系数
 
         参数:
-        x: 形状为(B, L, C, F)的张量
+            x: 输入张量，形状为(B, L, C, F)
 
         返回:
-        corr: 形状为(B, L, C, C)的皮尔逊相关系数矩阵
+            corr: Pearson相关系数矩阵，形状为(B, L, C, C)
         """
-        # 计算每个特征的平均值
-        mean_x = torch.mean(x, dim=-1, keepdim=True)
+        # 计算均值
+        mean_x = x.mean(dim=-1, keepdim=True)  # (B, L, C, 1)
 
-        # 计算每个特征与平均值的差值
-        xm = x - mean_x
-
-        # 计算协方差矩阵的分母(F-1)
-        # 这里我们使用F作为分母(总体协方差)，因为PyTorch的cov函数也是这样做的
-        # 如果需要样本协方差，可以改为(F-1)
-        denominator = x.shape[-1]
+        # 中心化数据
+        x_centered = x - mean_x  # (B, L, C, F)
 
         # 计算协方差矩阵
-        # 我们需要先将张量重塑为(B*L, C, F)，然后计算协方差
-        batch_size, seq_len, num_features, num_samples = x.shape
-        x_reshaped = xm.reshape(batch_size * seq_len, num_features, num_samples)
-
-        # 计算协方差矩阵
-        cov = torch.bmm(x_reshaped, x_reshaped.transpose(1, 2)) / denominator
+        cov_matrix = torch.matmul(x_centered, x_centered.transpose(-2, -1))  # (B, L, C, C)
 
         # 计算标准差
-        stddev = torch.sqrt(torch.diagonal(cov, dim1=1, dim2=2))
+        std_x = torch.sqrt(torch.sum(x_centered ** 2, dim=-1, keepdim=True))  # (B, L, C, 1)
 
         # 计算相关系数矩阵
-        stddev_outer = torch.bmm(stddev.unsqueeze(2), stddev.unsqueeze(1))
-        corr = cov / (stddev_outer + 1e-8)  # 添加小常数防止除以0
+        corr_matrix = cov_matrix / (std_x @ std_x.transpose(-2, -1))
 
-        # 重塑回原始形状
-        corr = corr.reshape(batch_size, seq_len, num_features, num_features)
+        # 处理数值稳定性（避免除以零）
+        corr_matrix = torch.nan_to_num(corr_matrix, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        if torch.isnan(corr_matrix).any():
+            pdb.set_trace()
 
-        return corr
+        return corr_matrix
     
     def _collate_adjacency(self, t_mu, f_mu, p_mu, sparsity, sparse=True):
         
@@ -253,18 +248,26 @@ class BrainVAE(nn.Module):
         phase_mu, phase_recon_loss, phase_kld_loss = self.phase_vae(time_series)
         # (B, T2, C, D)
         
-        time_a = self.pearson_correlation(time_mu)
-        frequency_a = self.pearson_correlation(frequency_mu)
-        phase_a = self.pearson_correlation(phase_mu)
+        time_a = self.batch_channel_pearson(time_mu)
+        frequency_a = self.batch_channel_pearson(frequency_mu)
+        phase_a = self.batch_channel_pearson(phase_mu)
         
-        adj = time_a + frequency_a + phase_a
+        adj = (time_a + frequency_a + phase_a) / 3
+        adj = torch.mean(adj, dim=1).unsqueeze(1)
         
         # pdb.set_trace()
         out = self.bnc(adj)
         
         logits = F.leaky_relu(self.dense3(out), negative_slope=0.33)
         
-        loss = self.loss_fn(logits, labels) + self.config.vae_alpha *(time_recon_loss + frequency_recon_loss + phase_recon_loss + time_kld_loss + time_kld_loss + time_kld_loss)
+        logit_loss = self.loss_fn(logits, labels)
+        vae_loss = time_recon_loss + frequency_recon_loss + phase_recon_loss + time_kld_loss + time_kld_loss + time_kld_loss
+        
+        loss = logit_loss + (self.last_logit_loss.detach() / self.last_vae_loss.detach()) * vae_loss
+        
+        self.last_logit_loss = logit_loss
+        self.last_vae_loss = vae_loss
+        # loss = logit_alpha * logit_loss + vae_alpha * vae_loss
         
         return ModelOutputs(logits=logits,
                             loss=loss)

@@ -180,16 +180,19 @@ class VAE(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv1d(1, channel1, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(channel1),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.33),
             nn.Conv1d(channel1, channel2, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(channel2),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.33),
             nn.Conv1d(channel2, channel3, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(channel3),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.33),
             nn.Conv1d(channel3, d_model, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(d_model),
-            nn.ReLU()
+            nn.LeakyReLU(negative_slope=0.33)
+            # nn.Conv1d(channel3, d_model, kernel_size=3, stride=2, padding=1),
+            # nn.BatchNorm1d(d_model),
+            # nn.LeakyReLU(negative_slope=0.33)
         )
         
         # 潜在空间的均值和方差
@@ -198,15 +201,18 @@ class VAE(nn.Module):
         
         # 解码器
         self.decoder = nn.Sequential(
+            # nn.ConvTranspose1d(d_model, channel3,  kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.BatchNorm1d(channel3),
+            # nn.LeakyReLU(negative_slope=0.33),
             nn.ConvTranspose1d(d_model, channel3,  kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm1d(channel3),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.33),
             nn.ConvTranspose1d(channel3, channel2, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm1d(channel2),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.33),
             nn.ConvTranspose1d(channel2, channel1, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm1d(channel1),
-            nn.ReLU(),
+            nn.LeakyReLU(negative_slope=0.33),
             nn.ConvTranspose1d(channel1, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.Tanh()  # 输出在[-1,1]范围内
         )
@@ -258,38 +264,40 @@ class VAE(nn.Module):
             recon_loss = nn.MSELoss(reduction='sum')(recon_x, x)
         elif self.view == "f":
             fft_x = torch.fft.fft(x, dim=-1)
-            # fft_x = torch.complex(
-            #     torch.clamp(fft_x.real, min=-1e8, max=1e8),
-            #     torch.clamp(fft_x.imag, min=-1e8, max=1e8)
-            # )
+            fft_x = torch.complex(
+                torch.clamp(fft_x.real, min=-1e8, max=1e8),
+                torch.clamp(fft_x.imag, min=-1e8, max=1e8)
+            )
             f_x = torch.abs(fft_x)
-            # f_x = torch.clamp(f_x, min=1e-8, max=1e8)
+            f_x = torch.clamp(f_x, min=1e-8, max=1e8)
             fft_recon_x = torch.fft.fft(recon_x, dim=-1)
-            # fft_recon_x = torch.complex(
-            #     torch.clamp(fft_recon_x.real, min=-1e8, max=1e8),
-            #     torch.clamp(fft_recon_x.imag, min=-1e8, max=1e8)
-            # )
+            fft_recon_x = torch.complex(
+                torch.clamp(fft_recon_x.real, min=-1e8, max=1e8),
+                torch.clamp(fft_recon_x.imag, min=-1e8, max=1e8)
+            )
             f_recon_x = torch.abs(fft_recon_x)
-            # f_recon_x = torch.clamp(f_recon_x, min=1e-8, max=1e8)
+            f_recon_x = torch.clamp(f_recon_x, min=1e-8, max=1e8)
             recon_loss = nn.MSELoss(reduction='sum')(f_recon_x, f_x)
         else:
             fft_x = torch.fft.fft(x, dim=-1)
-            # fft_x = torch.complex(
-            #     torch.clamp(fft_x.real, min=-1e8, max=1e8),
-            #     torch.clamp(fft_x.imag, min=-1e8, max=1e8)
-            # )
+            fft_x = torch.complex(
+                torch.clamp(fft_x.real, min=-1e8, max=1e8),
+                torch.clamp(fft_x.imag, min=-1e8, max=1e8)
+            )
             p_x = torch.angle(fft_x)
             fft_recon_x = torch.fft.fft(recon_x, dim=-1)
-            # fft_recon_x = torch.complex(
-            #     torch.clamp(fft_recon_x.real, min=-1e8, max=1e8),
-            #     torch.clamp(fft_recon_x.imag, min=-1e8, max=1e8)
-            # )
+            fft_recon_x = torch.complex(
+                torch.clamp(fft_recon_x.real, min=-1e8, max=1e8),
+                torch.clamp(fft_recon_x.imag, min=-1e8, max=1e8)
+            )
             p_recon_x = torch.angle(fft_recon_x)
             recon_loss = nn.MSELoss(reduction='sum')(p_recon_x, p_x)
             
         kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         
-        return mu.reshape(B, C, -1, self.d_model).permute(0, 2, 1, 3), recon_loss, kld
+        out = self.reparameterize(mu, logvar).reshape(B, C, -1, self.d_model).permute(0, 2, 1, 3)
+        
+        return out, recon_loss, kld
     
 
     
@@ -313,7 +321,7 @@ class BrainNetCNN(nn.Module):
         self.in_planes = 1
         self.d = node_size
 
-        self.e2econv1 = E2EBlock(94, 32, node_size, bias=True)
+        self.e2econv1 = E2EBlock(1, 32, node_size, bias=True)
         self.e2econv2 = E2EBlock(32, 32, node_size, bias=True)
         self.E2N = torch.nn.Conv2d(32, d_model, (1, self.d))
         self.N2G = torch.nn.Conv2d(d_model, d_model, (self.d, 1))
