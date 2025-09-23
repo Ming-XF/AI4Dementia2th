@@ -201,7 +201,7 @@ class Trainer(object):
         for k, v in result.items():
             if v is not None:
                 logger.info(f"{k}: {v:.5f}")
-        wandb.log(result)
+        # wandb.log(result)
         return result
 
     def multiple_evaluate(self):
@@ -285,7 +285,8 @@ class Trainer(object):
         logger.info("Saving model checkpoint to %s", path)
 
     def load_model(self):
-        path = os.path.join(self.args.model_dir, f'{self.args.model}-{self.task_id}.bin')
+        path = os.path.join(self.args.model_dir, f'{self.args.model}')
+        path = os.path.join(path, f'{self.args.model}-2.bin')
         if not os.path.exists(path):
             logger.info("Model doesn't exists! Train first!")
             return

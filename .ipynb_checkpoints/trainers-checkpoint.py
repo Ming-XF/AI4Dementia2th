@@ -684,7 +684,11 @@ class BrainVAETrainer(Trainer):
             self.data_config.alpha = self.data_config.beta = \
                 0.8 * (self.args.num_epochs - epoch) / self.args.num_epochs + 0.2
             self.test_result = self.evaluate()
-            self.best_result = self.test_result
+            if self.best_result is None or self.best_result['AUC'] <= self.test_result['AUC']:
+                self.best_result = self.test_result
+                self.save_model()
+            
+            # self.best_result = self.test_result
             msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Test loss: {self.test_result['Loss']:.5f}," \
                   f"Epoch time = {(end_time - start_time):.3f}s"
             print(msg)

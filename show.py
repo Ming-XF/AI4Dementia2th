@@ -9,9 +9,10 @@ import pdb
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--type", type=int, required=True, help="")
+parser.add_argument("--path", type=str, default="./log_dir", required=False, help="")
 args = parser.parse_args()
 
-LOG_DIR = './log_dir'          # 日志文件所在目录
+LOG_DIR = args.path       # 日志文件所在目录
 OUT_DIR = "./analysis"
 
 if args.type == 2:
@@ -136,12 +137,8 @@ def parse_log(path):
     # 按 Repeat 分割
     train_blocks = ''.join(lines).split('########## Repeat:')[1:]  # 去掉开头的空字符串
 
-    # if len(train_blocks) != 3:
-    #     print(f"警告: {path} 中只找到 {len(train_blocks)} 次训练，期望3次")
-    #     return None
-    
     best_epochs_per_run = []
-    current_epochs = None
+    all_epochs = []
     
     for block in train_blocks:
         aucs = [float(m) for m in auc_pattern.findall(block)]
@@ -152,11 +149,15 @@ def parse_log(path):
         test_losses = [float(m) for m in test_loss_pattern.findall(block)]
         train_losses = [float(m) for m in train_loss_pattern.findall(block)]
 
-        # 确保每个指标数量一致
-        if not len(aucs) == len(accs) == len(precs) == len(recalls) == len(fscores) == len(test_losses) == len(train_losses) == 200:
-            print(f"警告: {path} 中指标数量不一致")
-            return best_epochs_per_run, epochs
+        # 动态确定epoch数量，取所有指标列表的最小长度
+        num_epochs = min(len(aucs), len(accs), len(precs), len(recalls), 
+                         len(fscores), len(test_losses), len(train_losses))
+        
+        if num_epochs == 0:
+            print(f"警告: {path} 中某个训练块没有找到任何指标")
+            continue
             
+        # 确保每个指标数量一致，截取到最小长度
         epochs = [{
             'auc': aucs[i],
             'accuracy': accs[i],
@@ -165,13 +166,16 @@ def parse_log(path):
             'f_score': fscores[i],
             'test_loss': test_losses[i],
             'train_loss': train_losses[i]
-        } for i in range(len(aucs))]
+        } for i in range(num_epochs)]
         
         # 找到当前训练中具有最大相关指标的epoch
         best_epoch = max(epochs, key=lambda x: x[metrix])
         best_epochs_per_run.append(best_epoch)
+        
+        # 收集所有epoch数据用于绘图
+        all_epochs.append(epochs)
 
-    return best_epochs_per_run, epochs
+    return best_epochs_per_run, all_epochs
 
 # ------------------ 主流程 ------------------
 
@@ -189,7 +193,7 @@ for fname in os.listdir(LOG_DIR):
     if len(best_epochs_per_run) >  0:
         print(f"{model_name} 中找到 {len(best_epochs_per_run)} 次训练")
         model_data1[model_name] = best_epochs_per_run
-        model_data2[model_name] = epochs
+        model_data2[model_name] = epochs[-1]
     else:
         print(f"无法解析 {fname}，已跳过")
 

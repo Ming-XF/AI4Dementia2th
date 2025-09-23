@@ -48,44 +48,44 @@ class BrainVAE(nn.Module):
     def __init__(self, config: BrainVAEConfig):
         super().__init__()
         self.config = config
-        assert config.cls_token in ['sum', 'mean', 'param']
-        if config.readout == 'garo':
-            readout_module = ModuleGARO
-        elif config.readout == 'sero':
-            readout_module = ModuleSERO
-        elif config.readout == 'mean':
-            readout_module = ModuleMeanReadout
-        else:
-            raise
+        # assert config.cls_token in ['sum', 'mean', 'param']
+        # if config.readout == 'garo':
+        #     readout_module = ModuleGARO
+        # elif config.readout == 'sero':
+        #     readout_module = ModuleSERO
+        # elif config.readout == 'mean':
+        #     readout_module = ModuleMeanReadout
+        # else:
+        #     raise
             
         self.time_vae = VAE(view="t", d_model=config.d_model//2)
         self.frequency_vae = VAE(view="f", d_model=config.d_model//2)
         self.phase_vae = VAE(view="p", d_model=config.d_model//2)
 
-        self.token_parameter = nn.Parameter(
-            torch.randn([config.num_layers, 1, 1, config.d_model])) if config.cls_token == 'param' else None
+        # self.token_parameter = nn.Parameter(
+        #     torch.randn([config.num_layers, 1, 1, config.d_model])) if config.cls_token == 'param' else None
 
         self.num_classes = config.num_classes
-        self.sparsity = config.sparsity
+        # self.sparsity = config.sparsity
         
         self.bnc = BrainNetCNN(config.node_size, config.d_model)
 
         # define modules
-        self.percentile = Percentile()
+        # self.percentile = Percentile()
         # self.timestamp_encoder = ModuleTimestamping(config.node_size, config.d_model, config.d_model)
-        self.initial_linear = nn.Linear(config.node_size + config.d_model // 2 * 3, config.d_model)
-        self.gnn_layers = nn.ModuleList()
-        self.readout_modules = nn.ModuleList()
-        self.transformer_modules = nn.ModuleList()
-        self.linear_layers = nn.ModuleList()
-        self.dropout = nn.Dropout(config.dropout)
+        # self.initial_linear = nn.Linear(config.node_size + config.d_model // 2 * 3, config.d_model)
+        # self.gnn_layers = nn.ModuleList()
+        # self.readout_modules = nn.ModuleList()
+        # self.transformer_modules = nn.ModuleList()
+        # self.linear_layers = nn.ModuleList()
+        # self.dropout = nn.Dropout(config.dropout)
 
-        for i in range(config.num_layers):
-            self.gnn_layers.append(LayerGIN(config.d_model, config.d_model, config.d_model))
-            self.readout_modules.append(readout_module(hidden_dim=config.d_model, input_dim=config.node_size, dropout=0.1))
-            self.transformer_modules.append(
-                ModuleTransformer(config.d_model, 2 * config.d_model, num_heads=config.num_heads, dropout=0.1))
-            self.linear_layers.append(nn.Linear(config.d_model, config.num_classes))
+        # for i in range(config.num_layers):
+        #     self.gnn_layers.append(LayerGIN(config.d_model, config.d_model, config.d_model))
+        #     self.readout_modules.append(readout_module(hidden_dim=config.d_model, input_dim=config.node_size, dropout=0.1))
+        #     self.transformer_modules.append(
+        #         ModuleTransformer(config.d_model, 2 * config.d_model, num_heads=config.num_heads, dropout=0.1))
+        #     self.linear_layers.append(nn.Linear(config.d_model, config.num_classes))
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
         
@@ -253,6 +253,7 @@ class BrainVAE(nn.Module):
         phase_a = self.batch_channel_pearson(phase_mu)
         
         adj = (time_a + frequency_a + phase_a) / 3
+        # adj = (time_a + frequency_a) / 2
         adj = torch.mean(adj, dim=1).unsqueeze(1)
         
         # pdb.set_trace()
@@ -261,7 +262,8 @@ class BrainVAE(nn.Module):
         logits = F.leaky_relu(self.dense3(out), negative_slope=0.33)
         
         logit_loss = self.loss_fn(logits, labels)
-        vae_loss = time_recon_loss + frequency_recon_loss + phase_recon_loss + time_kld_loss + time_kld_loss + time_kld_loss
+        vae_loss = time_recon_loss + frequency_recon_loss + phase_recon_loss + time_kld_loss + frequency_kld_loss + phase_kld_loss
+        # vae_loss = time_recon_loss + frequency_recon_loss + time_kld_loss + frequency_kld_loss
         
         loss = logit_loss + (self.last_logit_loss.detach() / self.last_vae_loss.detach()) * vae_loss
         
