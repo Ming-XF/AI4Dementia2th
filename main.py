@@ -62,7 +62,7 @@ def cross_subject(args):
             results.add_record(trainer.best_result)
 
             run.finish()
-        results.save(os.path.join(args.model_dir, args.model, 'results.json'))
+        # results.save(os.path.join(args.model_dir, args.model, 'results.json'))
     elif args.do_test:
         trainer = eval(args.model + 'Trainer')(args)
         init_logger(f'{args.log_dir}/test_{args.model}{args.append}_{args.dataset}.log')
