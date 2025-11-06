@@ -56,7 +56,10 @@ def cross_subject(args):
             run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True, group=f"{group_name}", tags=[args.dataset])
 
             trainer = eval(args.model + 'Trainer')(args, local_rank=local_rank, task_id=i)
-            init_logger(f'{args.log_dir}/train_{args.model}{args.append}_{args.dataset}.log')
+            if args.num_heads >= 0:
+                init_logger(f'{args.log_dir}/train_{args.model}{args.append}_wo_C{args.num_heads}_{args.dataset}.log')
+            else:
+                init_logger(f'{args.log_dir}/train_{args.model}{args.append}_{args.dataset}.log')
             logger.info(f"{'#'*10} Repeat:{i} {'#'*10}")
             trainer.train()
             results.add_record(trainer.best_result)

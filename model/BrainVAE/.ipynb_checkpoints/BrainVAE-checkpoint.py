@@ -68,7 +68,14 @@ class BrainVAE(nn.Module):
         self.num_classes = config.num_classes
         # self.sparsity = config.sparsity
         
-        self.bnc = BrainNetCNN(config.node_size, config.d_model)
+        # self.bnc = BrainNetCNN(config.node_size, config.d_model)
+        #消融脑区2，65，36，55，24
+        # self.bnc = BrainNetCNN(config.node_size-1, config.d_model)
+        
+        if config.num_heads >= 0:
+            self.bnc = BrainNetCNN(config.node_size-1, config.d_model)
+        else:
+            self.bnc = BrainNetCNN(config.node_size, config.d_model)
 
         # define modules
         self.percentile = Percentile()
@@ -84,7 +91,7 @@ class BrainVAE(nn.Module):
             self.gnn_layers.append(LayerGIN(config.d_model, config.d_model, config.d_model))
             self.readout_modules.append(readout_module(hidden_dim=config.d_model, input_dim=config.node_size, dropout=0.1))
             self.transformer_modules.append(
-                ModuleTransformer(config.d_model, 2 * config.d_model, num_heads=config.num_heads, dropout=0.1))
+                ModuleTransformer(config.d_model, 2 * config.d_model, num_heads=1, dropout=0.1))
             self.linear_layers.append(nn.Linear(config.d_model, config.num_classes))
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
@@ -241,6 +248,12 @@ class BrainVAE(nn.Module):
         return a1
     
     def forward(self, time_series, node_feature, labels):
+        
+        #消融脑区2，65，36，55，24
+        # pdb.set_trace()
+        # (B, 68, 1500)
+        if self.config.num_heads >= 0:
+            time_series = torch.cat([time_series[:, :self.config.num_heads, :], time_series[:, self.config.num_heads+1:, :]], dim=1)
         
         # pdb.set_trace()
         time_mu, time_recon_loss, time_kld_loss = self.time_vae(time_series)

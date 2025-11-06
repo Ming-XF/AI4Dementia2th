@@ -264,6 +264,7 @@ def init_model_config(args, data_config: DataConfig):
     elif args.model == 'BrainVAE':
         model_config = BrainVAEConfig(node_size=data_config.node_size,
                                     num_classes=data_config.num_class,
+                                    num_heads=data_config.num_heads,
                                     d_model=args.d_model,
                                     num_layers=args.num_layers,
                                     window_size=args.window_size,
