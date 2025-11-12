@@ -10,6 +10,8 @@ from .LTSA import LocalTemporalSlidingAttention, BaseTemporalModule
 from .MVA import MultiViewAttention, BaseFrequencyModule
 from ..base import BaseConfig, ModelOutputs
 
+import pdb
+
 
 class DFaSTConfig(BaseConfig):
     def __init__(self,

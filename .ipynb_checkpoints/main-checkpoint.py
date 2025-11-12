@@ -7,6 +7,7 @@ from trainers import *
 from utils import *
 from torch import distributed
 import random
+import gc
 
 
 import warnings
@@ -15,6 +16,14 @@ warnings.filterwarnings("ignore")
 # os.environ['CUDA_VISIBLE_DEVICES'] = "1,3"
 logger = logging.getLogger(__name__)
 os.environ['WANDB_MODE'] = "offline"
+
+def cleanup_memory():
+    """清理显存和缓存"""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+    gc.collect()
+
 
 def set_seed(seed=42):
     """设置所有随机种子以确保可重现性"""
@@ -56,8 +65,8 @@ def cross_subject(args):
             run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True, group=f"{group_name}", tags=[args.dataset])
 
             trainer = eval(args.model + 'Trainer')(args, local_rank=local_rank, task_id=i)
-            if args.num_heads >= 0:
-                init_logger(f'{args.log_dir}/train_{args.model}{args.append}_wo_C{args.num_heads}_{args.dataset}.log')
+            if args.abla_channel >= 0:
+                init_logger(f'{args.log_dir}/train_{args.model}{args.append}_wo_C{args.abla_channel}_{args.dataset}.log')
             else:
                 init_logger(f'{args.log_dir}/train_{args.model}{args.append}_{args.dataset}.log')
             logger.info(f"{'#'*10} Repeat:{i} {'#'*10}")
@@ -65,6 +74,9 @@ def cross_subject(args):
             results.add_record(trainer.best_result)
 
             run.finish()
+            
+            del trainer
+            cleanup_memory()
         # results.save(os.path.join(args.model_dir, args.model, 'results.json'))
     elif args.do_test:
         trainer = eval(args.model + 'Trainer')(args)

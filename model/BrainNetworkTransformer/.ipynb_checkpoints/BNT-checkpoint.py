@@ -5,6 +5,8 @@ from .dec import DEC
 from .transformer_encoder import InterpretableTransformerEncoder
 from ..base import BaseConfig, ModelOutputs
 
+import pdb
+
 
 class BNTConfig(BaseConfig):
     def __init__(self,

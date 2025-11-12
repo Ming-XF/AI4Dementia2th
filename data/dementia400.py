@@ -183,4 +183,4 @@ def dementia_preprocess(path="../data/Dementia100/", num=11, cut=55000, sample=1
 
 
 if __name__ == '__main__':
-    dementia_preprocess("../data/Dementia400", num=3, cut=45000, sample=1500)
+    dementia_preprocess("../data/Dementia400", num=3, cut=45000, sample=15000)

@@ -265,6 +265,7 @@ def init_model_config(args, data_config: DataConfig):
         model_config = BrainVAEConfig(node_size=data_config.node_size,
                                     num_classes=data_config.num_class,
                                     num_heads=data_config.num_heads,
+                                    abla_channel=data_config.abla_channel,
                                     d_model=args.d_model,
                                     num_layers=args.num_layers,
                                     window_size=args.window_size,
@@ -365,6 +366,7 @@ def init_config():
     model_group.add_argument("--sampling_init", default=None, type=int, help="")
     model_group.add_argument("--hidden_dim", default=1024, type=int, help="")
     model_group.add_argument("--num_heads", default=1, type=int, help="")
+    model_group.add_argument("--abla_channel", default=-1, type=int, help="Channel Ablation EXP")
     model_group.add_argument("--num_layers", default=2, type=int, help="")
     model_group.add_argument("--num_node_temporal_layers", default=1, type=int, help="")
     model_group.add_argument("--num_graph_temporal_layers", default=2, type=int, help="")
