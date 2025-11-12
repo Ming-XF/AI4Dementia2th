@@ -1,6 +1,6 @@
 import os
 
-import wandb
+# import wandb
 
 from config import init_config
 from trainers import *
@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = "1,3"
 logger = logging.getLogger(__name__)
-os.environ['WANDB_MODE'] = "offline"
+# os.environ['WANDB_MODE'] = "offline"
 
 def cleanup_memory():
     """清理显存和缓存"""
@@ -62,7 +62,7 @@ def cross_subject(args):
                          f"{'_mp' if args.mix_up else ''}" \
                          f"-cross"
 
-            run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True, group=f"{group_name}", tags=[args.dataset])
+            # run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True, group=f"{group_name}", tags=[args.dataset])
 
             trainer = eval(args.model + 'Trainer')(args, local_rank=local_rank, task_id=i)
             if args.abla_channel >= 0:
@@ -73,7 +73,7 @@ def cross_subject(args):
             trainer.train()
             results.add_record(trainer.best_result)
 
-            run.finish()
+            # run.finish()
             
             del trainer
             cleanup_memory()
@@ -109,8 +109,8 @@ def within_subject(args):
                              f"{'_mp' if args.mix_up else ''}" \
                              f"-within"
 
-                run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True,
-                                 group=f"{group_name}", tags=[args.dataset, f'id_{subject_id}'])
+                # run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True,
+                                 # group=f"{group_name}", tags=[args.dataset, f'id_{subject_id}'])
 
                 trainer = eval(args.model + 'Trainer')(args, local_rank=local_rank, task_id=i, subject_id=subject_id)
                 init_logger(f'{args.log_dir}/train_{args.model}{args.append}_{args.dataset}.log')
@@ -121,11 +121,11 @@ def within_subject(args):
                 run.finish()
             best_results.save(os.path.join(args.model_dir, args.model, 'best_results.json'))
             final_results.save(os.path.join(args.model_dir, args.model, 'final_results.json'))
-            run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True,
-                             group=f"{group_name}-results", tags=[args.dataset])
-            wandb.log({f"best {k}": v for k, v in best_results.get_avg().items()})
-            wandb.log(final_results.get_avg())
-            run.finish()
+            # run = wandb.init(project=args.project, entity=args.wandb_entity, reinit=True,
+                             # group=f"{group_name}-results", tags=[args.dataset])
+            # wandb.log({f"best {k}": v for k, v in best_results.get_avg().items()})
+            # wandb.log(final_results.get_avg())
+            # run.finish()
 
     elif args.do_test:
         trainer = eval(args.model + 'Trainer')(args)

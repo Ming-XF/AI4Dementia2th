@@ -1,7 +1,7 @@
 import json
 import os
 from timeit import default_timer as timer
-import wandb
+# import wandb
 import logging
 import torch
 import numpy as np
@@ -101,7 +101,7 @@ class Trainer(object):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(), 'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(), 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -133,7 +133,7 @@ class Trainer(object):
             if self.best_result is None or self.best_result['Accuracy'] <= self.test_result['Accuracy']:
                 self.best_result = self.test_result
                 self.save_model()
-        wandb.log({f"Best {k}": v for k, v in self.best_result.items()})
+        # wandb.log({f"Best {k}": v for k, v in self.best_result.items()})
 
     def evaluate(self):
         if self.data_config.num_class == 2:
@@ -267,7 +267,7 @@ class Trainer(object):
         for k, v in result.items():
             if v is not None:
                 logger.info(f"{k}: {v:.5f}")
-        wandb.log(result)
+        # wandb.log(result)
         return result
 
     def save_model(self):
@@ -311,5 +311,5 @@ class Trainer(object):
         torch.onnx.export(self.model,
                           tuple([v for k, v in input_kwargs.items()]),
                           'model.onnx')
-        wandb.save('model.onnx')
+        # wandb.save('model.onnx')
         self.model.config.dict_output = True

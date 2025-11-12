@@ -142,8 +142,8 @@ class STAGINTrainer(Trainer):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -280,7 +280,7 @@ class SBLESTTrainer(Trainer):
 
         self.W, alpha, V, self.Wh = self.model(**inputs)
         self.best_result = self.test_result = self.evaluate()
-        wandb.log({f"Best {k}": v for k, v in self.best_result.items()})
+        # wandb.log({f"Best {k}": v for k, v in self.best_result.items()})
 
     def evaluate(self):
         test_dataloader = self.data_loaders['test']
@@ -295,7 +295,7 @@ class SBLESTTrainer(Trainer):
         vec_W = self.W.T.flatten()  # vec operation (Torch)
         preds = R_test @ vec_W
         result = self.metrix(preds, inputs["labels"])
-        wandb.log(result)
+        # wandb.log(result)
         return result
 
     @staticmethod
@@ -376,8 +376,8 @@ class TCANetTrainer(DFaSTTrainer):
 
             losses += loss_local_and_top.item()
             loss_list.append(loss_local_and_top.item())
-            wandb.log({'Training loss': loss_local_and_top.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss_local_and_top.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -451,9 +451,9 @@ class TCACNetTrainer(Trainer):
 
             losses += loss_global_model.item()
             loss_list.append(loss_global_model.item())
-            wandb.log({'Training loss': loss_global_model.item(),
-                       'Training local loss': loss_local_and_top.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss_global_model.item(),
+                       # 'Training local loss': loss_local_and_top.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -506,8 +506,8 @@ class MTSTATrainer(Trainer):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -570,8 +570,8 @@ class VAESTATrainer(Trainer):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -657,8 +657,8 @@ class BrainVAETrainer(Trainer):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -727,8 +727,8 @@ class STWeightTrainer(Trainer):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 
@@ -793,8 +793,8 @@ class EESTWTrainer(Trainer):
 
             losses += loss.item()
             loss_list.append(loss.item())
-            wandb.log({'Training loss': loss.item(),
-                       'Learning rate': self.optimizer.param_groups[0]['lr']})
+            # wandb.log({'Training loss': loss.item(),
+                       # 'Learning rate': self.optimizer.param_groups[0]['lr']})
 
         return losses / len(loss_list)
 

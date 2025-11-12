@@ -5,8 +5,11 @@ from torch.nn import functional as F
 # from braindecode.torch_ext.modules import Expression
 # from braindecode.torch_ext.functions import safe_log, square
 
-from braindecode.models.modules import Expression
-from braindecode.models.functions import safe_log, square
+# from braindecode.models.modules import Expression
+# from braindecode.models.functions import safe_log, square
+
+from braindecode.modules import Expression
+from braindecode.functional.functions import safe_log, square
 
 
 def _squeeze_final_output(x):
