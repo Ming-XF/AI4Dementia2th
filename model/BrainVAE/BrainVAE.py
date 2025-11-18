@@ -9,6 +9,7 @@ class BrainVAEConfig(BaseConfig):
                  num_classes=2,
                  num_heads=1,
                  abla_channel=-1,
+                 abla_vae=None,
                  num_layers=4,
                  sparsity=30,
                  dropout=0.5,
@@ -27,6 +28,7 @@ class BrainVAEConfig(BaseConfig):
         self.num_classes = num_classes
         self.num_heads = num_heads
         self.abla_channel = abla_channel
+        self.abla_vae = abla_vae
         self.num_layers = num_layers
         self.sparsity = sparsity
         self.cls_token = cls_token
@@ -59,10 +61,22 @@ class BrainVAE(nn.Module):
         #     readout_module = ModuleMeanReadout
         # else:
         #     raise
-            
-        self.time_vae = VAE(view="t", d_model=config.d_model//2)
-        self.frequency_vae = VAE(view="f", d_model=config.d_model//2)
-        self.phase_vae = VAE(view="p", d_model=config.d_model//2)
+
+        self.vae_configs = {
+            "t": ("f", "p"),  # 当abla_vae="t"时，frequency_vae用"f"，phase_vae用"p"
+            "f": ("t", "p"),  # 当abla_vae="f"时，frequency_vae用"t"，phase_vae用"p"  
+            "p": ("t", "f"),  # 当abla_vae="p"时，frequency_vae用"t"，phase_vae用"f"
+        }
+        
+        if config.abla_vae in self.vae_configs:
+            view1, view2 = self.vae_configs[config.abla_vae]
+            self.vae1 = VAE(view=view1, d_model=config.d_model//2)
+            self.vae2 = VAE(view=view2, d_model=config.d_model//2)
+        else:
+            # 默认情况：创建三个VAE
+            self.vae1 = VAE(view="t", d_model=config.d_model//2)
+            self.vae2 = VAE(view="f", d_model=config.d_model//2) 
+            self.vae3 = VAE(view="p", d_model=config.d_model//2)
 
         # self.token_parameter = nn.Parameter(
         #     torch.randn([config.num_layers, 1, 1, config.d_model])) if config.cls_token == 'param' else None
@@ -258,18 +272,37 @@ class BrainVAE(nn.Module):
             time_series = torch.cat([time_series[:, :self.config.abla_channel, :], time_series[:, self.config.abla_channel+1:, :]], dim=1)
         
         # pdb.set_trace()
-        time_mu, time_recon_loss, time_kld_loss = self.time_vae(time_series)
-        frequency_mu, frequency_recon_loss, frequency_kld_loss = self.frequency_vae(time_series)
-        phase_mu, phase_recon_loss, phase_kld_loss = self.phase_vae(time_series)
-        # (B, T2, C, D)
+
+        if self.config.abla_vae in self.vae_configs:
+            mu1, rl1, kl1 = self.vae1(time_series)
+            mu2, rl2, kl2 = self.vae2(time_series)
+            a1 = self.batch_channel_pearson(mu1)
+            a2 = self.batch_channel_pearson(mu2)
+            adj = (a1 + a2) / 2
+            adj = torch.mean(adj, dim=1).unsqueeze(1)
+            
+        else:
+            mu1, rl1, kl1 = self.vae1(time_series)
+            mu2, rl2, kl2 = self.vae2(time_series)
+            mu3, rl3, kl3 = self.vae3(time_series)
+            a1 = self.batch_channel_pearson(mu1)
+            a2 = self.batch_channel_pearson(mu2)
+            a3 = self.batch_channel_pearson(mu3)
+            adj = (a1 + a2 + a3) / 3
+            adj = torch.mean(adj, dim=1).unsqueeze(1)
+            
+        # time_mu, time_recon_loss, time_kld_loss = self.time_vae(time_series)
+        # frequency_mu, frequency_recon_loss, frequency_kld_loss = self.frequency_vae(time_series)
+        # phase_mu, phase_recon_loss, phase_kld_loss = self.phase_vae(time_series)
+        # # (B, T2, C, D)
+
+        # time_a = self.batch_channel_pearson(time_mu)
+        # frequency_a = self.batch_channel_pearson(frequency_mu)
+        # phase_a = self.batch_channel_pearson(phase_mu)
         
-        time_a = self.batch_channel_pearson(time_mu)
-        frequency_a = self.batch_channel_pearson(frequency_mu)
-        phase_a = self.batch_channel_pearson(phase_mu)
-        
-        adj = (time_a + frequency_a + phase_a) / 3
+        # adj = (time_a + frequency_a + phase_a) / 3
         # adj = (time_a + frequency_a) / 2
-        adj = torch.mean(adj, dim=1).unsqueeze(1)
+        # adj = torch.mean(adj, dim=1).unsqueeze(1)
         
         # pdb.set_trace()
         out = self.bnc(adj)
@@ -277,7 +310,12 @@ class BrainVAE(nn.Module):
         logits = F.leaky_relu(self.dense3(out), negative_slope=0.33)
         
         logit_loss = self.loss_fn(logits, labels)
-        vae_loss = time_recon_loss + frequency_recon_loss + phase_recon_loss + time_kld_loss + frequency_kld_loss + phase_kld_loss
+
+        if self.config.abla_vae in self.vae_configs:
+            vae_loss = rl1 + rl2 + kl1 + kl2
+        else:
+            vae_loss = rl1 + rl2 + rl3 + kl1 + kl2 + kl3
+        # vae_loss = time_recon_loss + frequency_recon_loss + phase_recon_loss + time_kld_loss + frequency_kld_loss + phase_kld_loss
         # vae_loss = time_recon_loss + frequency_recon_loss + time_kld_loss + frequency_kld_loss
         
         loss = logit_loss + (self.last_logit_loss.detach() / self.last_vae_loss.detach()) * vae_loss

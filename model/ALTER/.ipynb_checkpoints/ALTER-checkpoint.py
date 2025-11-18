@@ -123,7 +123,7 @@ class TransPoolingEncoder(nn.Module):
         return self.pooling
 
     def forward(self, x):
-        x = self.transformer(x)
+        x = self.transformer(x, **kwargs)
         if self.pooling:
             x, assignment = self.dec(x)
             return x, assignment

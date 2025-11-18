@@ -67,6 +67,8 @@ def cross_subject(args):
             trainer = eval(args.model + 'Trainer')(args, local_rank=local_rank, task_id=i)
             if args.abla_channel >= 0:
                 init_logger(f'{args.log_dir}/train_{args.model}{args.append}_wo_C{args.abla_channel}_{args.dataset}.log')
+            elif args.abla_vae != "n":
+                init_logger(f'{args.log_dir}/train_{args.model}{args.append}_wo_{args.abla_vae}_{args.dataset}.log')
             else:
                 init_logger(f'{args.log_dir}/train_{args.model}{args.append}_{args.dataset}.log')
             logger.info(f"{'#'*10} Repeat:{i} {'#'*10}")

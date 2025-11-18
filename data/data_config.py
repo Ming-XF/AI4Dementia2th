@@ -22,6 +22,7 @@ class DataConfig:
         self.class_weight = [1]*num_class
         self.num_heads = args.num_heads
         self.abla_channel = args.abla_channel
+        self.abla_vae = args.abla_vae
 
 
 
